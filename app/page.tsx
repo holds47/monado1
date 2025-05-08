@@ -1,35 +1,49 @@
-import { Metadata } from "next";
-import App from "@/components/pages/app";
-import { APP_URL } from "@/lib/constants";
+import { useEffect, useState } from "react";
+import { Line } from "react-chartjs-2";
+import "chart.js/auto"; // Automatically register Chart.js components
 
-const frame = {
-  version: "next",
-  imageUrl: `${APP_URL}/images/feed.png`,
-  button: {
-    title: "Launch Template",
-    action: {
-      type: "launch_frame",
-      name: "Monad Farcaster MiniApp Template",
-      url: APP_URL,
-      splashImageUrl: `${APP_URL}/images/splash.png`,
-      splashBackgroundColor: "#f7f7f7",
-    },
-  },
+const fetchETHPrices = async () => {
+  const response = await fetch(
+    "https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=30"
+  );
+  const data = await response.json();
+  return data.prices.map(([timestamp, price]) => ({
+    timestamp: new Date(timestamp).toLocaleDateString(),
+    price,
+  }));
 };
 
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Monad Farcaster MiniApp Template",
-    openGraph: {
-      title: "Monad Farcaster MiniApp Template",
-      description: "A template for building mini-apps on Farcaster and Monad",
-    },
-    other: {
-      "fc:frame": JSON.stringify(frame),
-    },
-  };
-}
-
 export default function Home() {
-  return <App />;
+  const [ethData, setEthData] = useState([]);
+
+  useEffect(() => {
+    const getPrices = async () => {
+      const prices = await fetchETHPrices();
+      setEthData(prices);
+    };
+    getPrices();
+  }, []);
+
+  const chartData = {
+    labels: ethData.map((point) => point.timestamp),
+    datasets: [
+      {
+        label: "Ethereum Price (USD)",
+        data: ethData.map((point) => point.price),
+        borderColor: "rgba(138, 43, 226, 0.8)",
+        backgroundColor: "rgba(138, 43, 226, 0.2)",
+        borderWidth: 2,
+        tension: 0.3,
+      },
+    ],
+  };
+
+  return (
+    <div style={{ background: "linear-gradient(135deg, #800080, #D8BFD8)", minHeight: "100vh", padding: "20px" }}>
+      <h1 style={{ color: "#fff", textAlign: "center", marginBottom: "20px" }}>Ethereum Price Tracker</h1>
+      <div style={{ maxWidth: "800px", margin: "0 auto", background: "#fff", padding: "20px", borderRadius: "10px" }}>
+        <Line data={chartData} />
+      </div>
+    </div>
+  );
 }
